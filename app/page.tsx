@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { computeScore } from "@/lib/score";
-import { DEFAULT_SETTINGS, loadEntry, loadRecent, loadSettings, saveEntry, saveSettings, todayISO } from "@/lib/storage";
+import { DEFAULT_SETTINGS, loadEntry, loadRecent, loadSettings, saveEntry, todayISO } from "@/lib/storage";
 import { tryCoachSync } from "@/lib/coach";
 
 function Section({ title, right, children }: { title: string; right?: any; children: any }) {
@@ -22,11 +22,30 @@ function Chip({ label, onClick }: { label: string; onClick: () => void }) {
 export default function Page() {
   const [settings, setSettings] = useState<any>(DEFAULT_SETTINGS);
   const [date, setDate] = useState<string>(todayISO());
-  const [entry, setEntry] = useState<any>(loadEntry(todayISO(), DEFAULT_SETTINGS));
+  // SAFE initial entry (no localStorage yet)
+  const [entry, setEntry] = useState<any>({
+    date: todayISO(),
+    dayTheme: "Plan to Win",
+    todos: DEFAULT_SETTINGS.todoTemplate.map((t: string, i: number) => ({ id: `t${i}`, text: t, checked: false })),
+    fields: Object.fromEntries(DEFAULT_SETTINGS.categories.map((c: any) => [c.id, ""])),
+    worked: "", challenged: "", tomorrowAPlus: "",
+  });
   const [themeResp, setThemeResp] = useState<any>(null);
+  const [streak, setStreak] = useState<number>(0);
 
-  useEffect(() => { const s = loadSettings(); setSettings(s); setEntry(loadEntry(date, s)); }, []);
-  useEffect(() => { setEntry(loadEntry(date, settings)); }, [date]);
+  // After mount, read from localStorage
+  useEffect(() => {
+    const s = loadSettings();
+    setSettings(s);
+    setEntry(loadEntry(date, s));
+    setStreak(loadRecent(7).filter((r: any) => !!r.date).length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When date changes, (after mount) load that day
+  useEffect(() => {
+    setEntry(loadEntry(date, settings));
+  }, [date, settings]);
 
   const score = useMemo(() => computeScore(entry), [entry]);
 
@@ -40,13 +59,8 @@ export default function Page() {
       const res = await tryCoachSync(e, settings);
       if (res.ok) setThemeResp(res.data);
     }
+    setStreak(loadRecent(7).filter((r: any) => !!r.date).length);
   };
-
-  // quick streak (last 7 days with entries)
-  const streak = (() => {
-    const recent = loadRecent(7);
-    return recent.filter((r: any) => !!r.date).length;
-  })();
 
   return (
     <>
@@ -87,7 +101,7 @@ export default function Page() {
           <div key={c.id} className="mb-3">
             <div className="flex items-center justify-between mb-1">
               <label className="text-sm font-medium">{c.label}</label>
-              <div>{(c.chips || []).map((ch: string) => (<Chip key={ch} label={ch} onClick={() => updateField(c.id, (entry.fields[c.id] ? entry.fields[c.id] + ", " : "") + ch)} />))}</div>
+              <div>{(c.chips || []).map((ch: string) => (<Chip key={ch} label={ch} onClick={() => updateField(c.id, (entry.fields[c.id] ? entry.fields[c[id]] + ", " : "") + ch)} />))}</div>
             </div>
             <input className="w-full px-3 py-2 rounded-lg border" value={entry.fields[c.id] || ""} onChange={e => updateField(c.id, e.target.value)} />
           </div>
