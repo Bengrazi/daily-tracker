@@ -1,8 +1,14 @@
 "use client";
+import { useEffect, useState } from "react";
 import { loadRecent } from "@/lib/storage";
 
 export default function Dashboard() {
-  const entries = loadRecent(30);
+  const [entries, setEntries] = useState<any[]>([]);
+
+  useEffect(() => {
+    setEntries(loadRecent(30));
+  }, []);
+
   const avg = entries.length ? Math.round(entries.reduce((a: any, b: any) => a + (b.score || 0), 0) / entries.length) : 0;
   const completion = entries.length
     ? Math.round(
