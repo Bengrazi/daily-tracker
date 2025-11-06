@@ -2,6 +2,9 @@ export const metadata = {
   title: "Daily Tracker",
   description: "Local-first daily tracker",
   manifest: "/manifest.json",
+};
+
+export const viewport = {
   themeColor: "#0f172a",
 };
 
