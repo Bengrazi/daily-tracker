@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = "force-dynamic";   // ⬅ prevents pre-render
+
 import { useEffect, useMemo, useState } from "react";
 import { computeScore } from "@/lib/score";
 import { DEFAULT_SETTINGS, loadEntry, loadRecent, loadSettings, saveEntry, todayISO } from "@/lib/storage";
@@ -7,10 +9,7 @@ import { tryCoachSync } from "@/lib/coach";
 function Section({ title, right, children }: { title: string; right?: any; children: any }) {
   return (
     <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold">{title}</h3>
-        {right}
-      </div>
+      <div className="flex items-center justify-between mb-2"><h3 className="font-semibold">{title}</h3>{right}</div>
       {children}
     </div>
   );
@@ -22,7 +21,6 @@ function Chip({ label, onClick }: { label: string; onClick: () => void }) {
 export default function Page() {
   const [settings, setSettings] = useState<any>(DEFAULT_SETTINGS);
   const [date, setDate] = useState<string>(todayISO());
-  // SAFE initial entry (no localStorage yet)
   const [entry, setEntry] = useState<any>({
     date: todayISO(),
     dayTheme: "Plan to Win",
@@ -33,8 +31,8 @@ export default function Page() {
   const [themeResp, setThemeResp] = useState<any>(null);
   const [streak, setStreak] = useState<number>(0);
 
-  // After mount, read from localStorage
   useEffect(() => {
+    // safe on client
     const s = loadSettings();
     setSettings(s);
     setEntry(loadEntry(date, s));
@@ -42,7 +40,6 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When date changes, (after mount) load that day
   useEffect(() => {
     setEntry(loadEntry(date, settings));
   }, [date, settings]);
@@ -80,9 +77,7 @@ export default function Page() {
 
       <Section title="Day Theme">
         <input value={entry.dayTheme} onChange={e => setEntry({ ...entry, dayTheme: e.target.value })} className="w-full px-3 py-2 rounded-lg border" />
-        {themeResp?.theme && (
-          <div className="mt-2 text-sm text-slate-600"><b>Coach:</b> {themeResp.theme} — {themeResp.nudge}</div>
-        )}
+        {themeResp?.theme && <div className="mt-2 text-sm text-slate-600"><b>Coach:</b> {themeResp.theme} — {themeResp.nudge}</div>}
       </Section>
 
       <Section title="To-Dos" right={<span className="text-sm text-slate-500">check to complete</span>}>
@@ -101,7 +96,9 @@ export default function Page() {
           <div key={c.id} className="mb-3">
             <div className="flex items-center justify-between mb-1">
               <label className="text-sm font-medium">{c.label}</label>
-              <div>{(c.chips || []).map((ch: string) => (<Chip key={ch} label={ch} onClick={() => updateField(c.id, (entry.fields[c.id] ? entry.fields[c[id]] + ", " : "") + ch)} />))}</div>
+              <div>{(c.chips || []).map((ch: string) => (
+                <Chip key={ch} label={ch} onClick={() => updateField(c.id, (entry.fields[c.id] ? entry.fields[c.id] + ", " : "") + ch)} />
+              ))}</div>
             </div>
             <input className="w-full px-3 py-2 rounded-lg border" value={entry.fields[c.id] || ""} onChange={e => updateField(c.id, e.target.value)} />
           </div>
